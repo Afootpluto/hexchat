@@ -890,9 +890,23 @@ inbound_ping_reply (session *sess, char *timestring, char *from,
 		timestring += 3;
 		lag = 1;
 	}
+	else if (sess->server->has_broken_pong && sess->server->lag_sent > 0)
+	{
+		/* There is an outstanding lagcheck. Pretend this PONG is the response to it. */
+		lag = 1;
+	}
 
-	tim = strtoul (timestring, NULL, 10);
 	nowtim = make_ping_time ();
+
+	if (sess->server->has_broken_pong)
+	{
+		tim = sess->server->lag_sent;
+	}
+	else
+	{
+		tim = strtoul(timestring, NULL, 10);
+	}
+
 	dif = nowtim - tim;
 
 	sess->server->ping_recv = time (0);

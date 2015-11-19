@@ -1527,7 +1527,8 @@ irc_inline (server *serv, char *buf, int len)
 		word[1]++;
 		word_eol[1] = buf + 1;	/* but not for HexChat internally */
 
-	} else
+	}
+	else
 	{
 		word[0] = type = word[1];
 
@@ -1536,7 +1537,11 @@ irc_inline (server *serv, char *buf, int len)
 			goto xit;
 	}
 
-	if (buf[0] != ':')
+	/* Broken PONG servers send a response like >>> PONG :irc.gitter.im
+	 * Unlike a well-formed PONG, this doesn't start with a :
+	 * So if the server has broken pong, and this message is a PONG, then process it as a named message.
+	 */
+	if (buf[0] != ':' && (!serv->has_broken_pong || strncmp (word[1], "PONG", 5) != 0))
 	{
 		process_named_servermsg (sess, buf, word[0], word_eol, &tags_data);
 		goto xit;

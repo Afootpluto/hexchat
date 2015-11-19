@@ -576,6 +576,12 @@ typedef struct server
 	unsigned int use_ssl:1;				  /* is server SSL capable? */
 	unsigned int accept_invalid_cert:1;/* ignore result of server's cert. verify */
 #endif
+
+	/* Handle some services like Gitter that return malformed PONG responses.
+	 * Gitter doesn't prepend server name to its response, and doesn't append the ping identifier
+	 * (such as our LAG###) in the pong response
+	 */
+	gboolean has_broken_pong;
 } server;
 
 typedef int (*cmd_callback) (struct session * sess, char *tbuf, char *word[],

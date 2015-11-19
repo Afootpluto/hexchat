@@ -51,6 +51,7 @@ typedef struct ircnet
 	GSList *favchanlist;
 	int selected;
 	guint32 flags;
+	gboolean has_broken_pong;
 } ircnet;
 
 extern GSList *network_list;

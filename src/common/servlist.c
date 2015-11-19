@@ -499,6 +499,8 @@ servlist_connect (session *sess, ircnet *net, gboolean join)
 		serv->connect (serv, ircserv->hostname, -1, FALSE);
 
 	server_set_encoding (serv, net->encoding);
+
+	serv->has_broken_pong = net->has_broken_pong;
 }
 
 int
@@ -1026,44 +1028,6 @@ servlist_load (void)
 		buf[len-1] = 0;	/* remove the trailing \n */
 		if (net)
 		{
-			switch (buf[0])
-			{
-			case 'I':
-				net->nick = g_strdup (buf + 2);
-				break;
-			case 'i':
-				net->nick2 = g_strdup (buf + 2);
-				break;
-			case 'U':
-				net->user = g_strdup (buf + 2);
-				break;
-			case 'R':
-				net->real = g_strdup (buf + 2);
-				break;
-			case 'P':
-				net->pass = g_strdup (buf + 2);
-				break;
-			case 'L':
-				net->logintype = atoi (buf + 2);
-				break;
-			case 'E':
-				net->encoding = servlist_check_encoding (buf + 2) ? g_strdup (buf + 2) : g_strdup ("UTF-8");
-				break;
-			case 'F':
-				net->flags = atoi (buf + 2);
-				break;
-			case 'S':	/* new server/hostname for this network */
-				servlist_server_add (net, buf + 2);
-				break;
-			case 'C':
-				servlist_command_add (net, buf + 2);
-				break;
-			case 'J':
-				servlist_favchan_add (net, buf + 2);
-				break;
-			case 'D':
-				net->selected = atoi (buf + 2);
-				break;
 			/* FIXME Migration code. In 2.9.5 the order was:
 			 *
 			 * P=serverpass, A=saslpass, B=nickservpass
@@ -1071,9 +1035,10 @@ servlist_load (void)
 			 * So if server password was unset, we can safely use SASL
 			 * password for our new universal password, or if that's also
 			 * unset, use NickServ password.
-			 *
-			 * Should be removed at some point.
 			 */
+
+			switch (buf[0])
+			{
 			case 'A':
 				if (!net->pass)
 				{
@@ -1083,6 +1048,8 @@ servlist_load (void)
 						net->logintype = LOGIN_SASL;
 					}
 				}
+				break;
+
 			case 'B':
 				if (!net->pass)
 				{
@@ -1092,6 +1059,59 @@ servlist_load (void)
 						net->logintype = LOGIN_NICKSERV;
 					}
 				}
+				break;
+
+			case 'C':
+				servlist_command_add (net, buf + 2);
+				break;
+
+			case 'D':
+				net->selected = atoi (buf + 2);
+				break;
+
+			case 'E':
+				net->encoding = servlist_check_encoding (buf + 2) ? g_strdup (buf + 2) : g_strdup ("UTF-8");
+				break;
+
+			case 'F':
+				net->flags = atoi (buf + 2);
+				break;
+
+			case 'G':
+				net->has_broken_pong = atoi (buf + 2) != 0;
+				break;
+
+			case 'I':
+				net->nick = g_strdup (buf + 2);
+				break;
+
+			case 'i':
+				net->nick2 = g_strdup (buf + 2);
+				break;
+
+			case 'J':
+				servlist_favchan_add (net, buf + 2);
+				break;
+
+			case 'L':
+				net->logintype = atoi (buf + 2);
+				break;
+
+			case 'P':
+				net->pass = g_strdup (buf + 2);
+				break;
+
+			case 'R':
+				net->real = g_strdup (buf + 2);
+				break;
+
+			case 'S':	/* new server/hostname for this network */
+				servlist_server_add (net, buf + 2);
+				break;
+
+			case 'U':
+				net->user = g_strdup (buf + 2);
+				break;
 			}
 		}
 		if (buf[0] == 'N')
@@ -1204,6 +1224,8 @@ servlist_save (void)
 		}
 
 		fprintf (fp, "F=%d\nD=%d\n", net->flags, net->selected);
+
+		fprintf (fp, "G=%d\n", net->has_broken_pong ? 1 : 0);
 
 		netlist = net->servlist;
 		while (netlist)
